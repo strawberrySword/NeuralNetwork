@@ -59,11 +59,9 @@ class Network(object):
         forward_outputs[0] = X
 
         for i in range(0, self.num_layers - 1):
-            forward_outputs[i+1] = self.relu(np.matmul(self.parameters['W' + str(
-                i+1)], forward_outputs[i]) + self.parameters['b' + str(i+1)])
+            forward_outputs[i+1] = self.relu(np.matmul(self.parameters['W' + str(i+1)], forward_outputs[i]) + self.parameters['b' + str(i+1)])
 
-        ZL = np.matmul(self.parameters['W' + str(self.num_layers)],
-                       forward_outputs[self.num_layers - 1]) + self.parameters['b' + str(self.num_layers)]
+        ZL = np.matmul(self.parameters['W' + str(self.num_layers)],forward_outputs[self.num_layers - 1]) + self.parameters['b' + str(self.num_layers)]
         return ZL, forward_outputs
 
     def backpropagation(self, ZL, Y, forward_outputs):
@@ -77,39 +75,31 @@ class Network(object):
 
         """
         batch_size = Y.shape[0]
-        Y = np.eye(10)[Y].T
+        # Y = np.eye(10)[Y].T
         grads = {}
         L = self.num_layers
         grads_by_v = [None] * (L + 1)
 
         # initialize gradients of L and L-1
-        grads["dW" + str(L)] = np.matmul(softmax(ZL) -
-                                         Y, forward_outputs[L - 1].T)/batch_size
-        grads["db" + str(L)] = np.mean(softmax(ZL) - Y, axis=1).reshape(-1, 1)
-        grads_by_v[L] = np.mean(softmax(ZL) - Y, axis=1).reshape(-1, 1)
+        grads_by_v[L] = self.cross_entropy_derivative(ZL, Y)
+        grads["dW" + str(L)] = np.matmul(grads_by_v[L], forward_outputs[L - 1].T)/batch_size
+        grads["db" + str(L)] = np.average(grads_by_v[L], axis=1, keepdims = True)
 
-        grads_by_v[L-1] = np.matmul(self.parameters["W" +
-                                    str(L)].T, grads_by_v[L])
+        grads_by_v[L-1] = np.matmul(self.parameters["W" + str(L)].T, grads_by_v[L])
 
-        relu_der_by_grad = np.multiply(grads_by_v[L-1],
-                                       self.relu_derivative(forward_outputs[L-1]))
+        relu_der_by_grad = grads_by_v[L-1] * self.relu_derivative(forward_outputs[L-1])
 
-        grads["dW" + str(L - 1)] = np.matmul(relu_der_by_grad,
-                                             forward_outputs[L-2].T)/batch_size
-        grads["db" + str(L-1)] = np.mean(relu_der_by_grad,
-                                         axis=1).reshape(-1, 1)
+        grads["dW" + str(L - 1)] = np.matmul(relu_der_by_grad, forward_outputs[L-2].T)/batch_size
+        grads["db" + str(L-1)] = np.average(relu_der_by_grad, axis=1, keepdims = True)
 
         # mean
 
         # backprop the rest of the cases:
         for i in range(L-2, 0, -1):
-            grads_by_v[i] = np.matmul(
-                self.parameters["W" + str(i + 1)].T, relu_der_by_grad)
-            relu_der_by_grad = np.multiply(
-                grads_by_v[i], self.relu_derivative(forward_outputs[i]))
+            grads_by_v[i] = np.matmul(self.parameters["W" + str(i + 1)].T, relu_der_by_grad)
+            relu_der_by_grad = np.multiply(grads_by_v[i], self.relu_derivative(forward_outputs[i]))
 
-            grads["dW" + str(i)] = np.matmul(relu_der_by_grad,
-                                             forward_outputs[i-1].T).T
+            grads["dW" + str(i)] = np.matmul(relu_der_by_grad, forward_outputs[i-1].T).T
             grads["db" + str(i)] = relu_der_by_grad.T
 
         return grads

@@ -19,6 +19,6 @@ batch_size = 100
 learning_rate = 0.1
 
 # Network configuration
-layer_dims = [784, 40, 10]
+layer_dims = [784, 100, 40, 40, 10]
 net = Network(layer_dims)
 net.train(x_train, y_train, epochs, batch_size, learning_rate, x_test=x_test, y_test=y_test)
